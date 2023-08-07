@@ -1,5 +1,4 @@
 import dataclasses
-from pathlib import Path
 from typing import Optional
 
 import scrapy
@@ -26,6 +25,11 @@ class VacancySpider(scrapy.Spider):
             job_link = card.attrib["href"]
             yield response.follow(job_link, callback=self.parse_vacancy)
 
+        next_page = response.xpath('//ul[has-class("pagination")]/li')
+        if next_page:
+            next_page = next_page[-1].xpath("./a").attrib["href"]
+            yield response.follow(next_page, callback=self.parse)
+
     def parse_vacancy(self, response):
         url = response.url
         title = response.css("h1::text").get()
@@ -41,8 +45,7 @@ class VacancySpider(scrapy.Spider):
             "salary_max": salary["max"],
             "description": description,
         }
-
-        print(vacancy_data)
+        yield vacancy_data
 
 
 def extract_location(response):
@@ -50,7 +53,9 @@ def extract_location(response):
         try:
             if par.css("span").attrib["title"] == "Адреса роботи":
                 location = par.xpath("normalize-space()").get().split(".")[0]
-                return location
+            elif par.css("span").attrib["title"] == "Місце роботи":
+                location = par.xpath("normalize-space()").get()
+            return location
         except:
             pass
     return None
@@ -67,7 +72,6 @@ def extract_salary(response):
                 )
                 salary["min"] = f"{int(salary_value[0])} грн"
                 salary["max"] = f"{int(salary_value[2])} грн"
-
         except:
             pass
     if salary["max"] is None and salary["min"]:
