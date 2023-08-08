@@ -52,11 +52,10 @@ def extract_location(response):
     for par in response.css("p"):
         try:
             if par.css("span").attrib["title"] == "Адреса роботи":
-                location = par.xpath("normalize-space()").get().split(".")[0]
+                return par.xpath("normalize-space()").get().split(".")[0]
             elif par.css("span").attrib["title"] == "Місце роботи":
-                location = par.xpath("normalize-space()").get()
-            return location
-        except:
+                return par.xpath("normalize-space()").get()
+        except KeyError:
             pass
     return None
 
@@ -72,7 +71,7 @@ def extract_salary(response):
                 )
                 salary["min"] = f"{int(salary_value[0])} грн"
                 salary["max"] = f"{int(salary_value[2])} грн"
-        except:
+        except (KeyError, TypeError, IndexError, ValueError):
             pass
     if salary["max"] is None and salary["min"]:
         salary["max"] = salary["min"]
